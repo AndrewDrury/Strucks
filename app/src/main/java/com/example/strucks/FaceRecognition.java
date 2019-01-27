@@ -4,11 +4,14 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.graphics.Rect;
+import android.location.Location;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.telephony.SmsManager;
 import android.util.Log;
 
+import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
@@ -79,6 +82,9 @@ public class FaceRecognition extends AppCompatActivity {
         ORIENTATIONS.append(Surface.ROTATION_180,270);
         ORIENTATIONS.append(Surface.ROTATION_270,180);
     }
+
+    private FusedLocationProviderClient mFusedLocationClient;
+    private String message;
 
     private String cameraId;
     private CameraDevice cameraDevice;
@@ -575,6 +581,10 @@ public class FaceRecognition extends AppCompatActivity {
                                                 Log.i("testing","faceID: " + currentID);
 
                                             }
+                                            else{
+                                                //sending alert
+                                                getCurrentLocation();
+                                            }
                                         }
                                         // [END get_face_info]
                                         // [END_EXCLUDE]
@@ -648,5 +658,43 @@ public class FaceRecognition extends AppCompatActivity {
             is.close();
         } catch (Exception e) {}
         return bm;
+    }
+
+    /////////////////////
+    //LOCATION STUFF
+    public void sendSMS() {
+        SmsManager smsManager = SmsManager.getDefault();
+        Log.i("log", "SMS is called");
+        smsManager.sendTextMessage(new String("6475348632"), null, message, null, null);
+        Toast.makeText(getApplicationContext(), "SMS sent.",
+                Toast.LENGTH_LONG).show();
+    }
+
+    private void getCurrentLocation() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        mFusedLocationClient.getLastLocation()
+                .addOnSuccessListener(this, new OnSuccessListener<Location>() {
+                    @Override
+                    public void onSuccess(Location location) {
+                        // Got last known location. In some rare situations this can be null.
+                        if (location != null) {
+                            // Logic to handle location object
+                            double longitude = location.getLongitude();
+                            double latitude = location.getLatitude();
+                            message= String.format("ALERT! Your Truck has been hijacked!\nDriver:Steven\nVIN:4V4MC9EH7CN559763\nLocation:https://www.google.com/maps/place/%s,%s", latitude, longitude);
+
+                            Log.i("log", message);
+                            if(message != null){
+                                sendSMS();
+                            }
+
+                        }
+                        else{
+                            Log.i("log", "Location is null");
+                        }
+                    }
+                });
     }
 }
