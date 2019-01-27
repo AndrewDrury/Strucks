@@ -29,10 +29,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         imageView = (ImageView)findViewById(R.id.Animatedimage);
-
-
-
-
         button = findViewById(R.id.Loginbtn);
 
         button.setOnClickListener(new View.OnClickListener() {
@@ -74,20 +70,10 @@ public class MainActivity extends AppCompatActivity {
 
                 }
             },1000);
-
-
-
-
         }
         else{
             Toast.makeText(getApplicationContext(), "Invalid Loggin", Toast.LENGTH_LONG).show();
         }
         }
-
-
-
-
-
-
-
 }
+
