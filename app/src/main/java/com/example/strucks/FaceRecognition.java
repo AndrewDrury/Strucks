@@ -2,12 +2,16 @@ package com.example.strucks;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.graphics.Rect;
+import android.location.Location;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.telephony.SmsManager;
 import android.util.Log;
 
+import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
@@ -47,16 +51,12 @@ import android.media.ImageReader;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
-import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
-import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.content.pm.PackageManager;
 import android.util.Size;
 import android.util.SparseIntArray;
 import android.view.Surface;
 import android.view.TextureView;
-import android.widget.Button;
 import android.widget.Toast;
 
 import java.io.File;
@@ -67,10 +67,10 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.UUID;
-
-
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 
 public class FaceRecognition extends AppCompatActivity {
@@ -83,6 +83,9 @@ public class FaceRecognition extends AppCompatActivity {
         ORIENTATIONS.append(Surface.ROTATION_270,180);
     }
 
+    private FusedLocationProviderClient mFusedLocationClient;
+    private String message;
+
     private String cameraId;
     private CameraDevice cameraDevice;
     private CameraCaptureSession cameraCaptureSessions;
@@ -91,11 +94,16 @@ public class FaceRecognition extends AppCompatActivity {
     private ImageReader imageReader;
 
     private File file;
+    private String path;
+    private Image pic;
     private static final int REQUEST_CAMERA_PERMISSION = 200;
     private Handler mBackgrounderHandler;
     private HandlerThread mBackgroundThread;
 
     private FirebaseAnalytics mFirebaseAnalytics;
+
+    private int initID = -1;
+    private int currentID;
 
     CameraDevice.StateCallback stateCallBack = new CameraDevice.StateCallback() {
         @Override
@@ -132,10 +140,22 @@ public class FaceRecognition extends AppCompatActivity {
         // Obtain the FirebaseAnalytics instance.
         mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
 
-        Log.i("testing", "hey --------");
-        logic();
+        Log.i("testing", "Getting inital face id --------");
 
-        Log.i("testing", "log --------");
+        /*while(initID == -1) {
+            takePicture();
+
+
+            Bitmap bmp = BitmapFactory.decodeFile(file.getPath());
+            FirebaseVisionImage image = FirebaseVisionImage.fromBitmap(bmp);
+            detectFaces(image);
+            initID = currentID;
+
+            Log.i("testing", "initID: " + initID);
+        }*/
+
+        //logic();
+        //Log.i("testing", "log --------");
         Bundle bundle = new Bundle();
 
         bundle.putString(FirebaseAnalytics.Param.ITEM_ID, "Strucks");
@@ -143,8 +163,76 @@ public class FaceRecognition extends AppCompatActivity {
         bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "image");
         mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.SELECT_CONTENT, bundle);
 
-        Log.i("testing", "done --------");
+       //Log.i("testing", "done --------");
 
+
+        Log.i("testing", "currentID: " + currentID);
+
+        final ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+        executorService.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                checkID();
+            }
+        }, 5, 5, TimeUnit.SECONDS);
+    }
+
+    private void checkID() {
+
+        Log.i("testing", "YOLO1 --------");
+        takePicture();
+        Log.i("testing", "path: " + path);
+
+        //Bitmap bmp = BitmapFactory.decodeResource(getResources(), Image);
+        //Bitmap bmp = BitmapFactory.decodeFile(path);
+        //Bitmap bmp = BitmapFactory.decodeStream((InputStream)new URL(path).getContent());
+        //bmp = RotateBitmap(bmp, 180);
+        //Bitmap bmp = BitmapFactory.decodeResource(getResources(), path.);
+
+/*
+        Log.i("testing", "yolo2 -------");
+        FirebaseVisionImage image = FirebaseVisionImage.fromBitmap(bmp);
+        //FirebaseVisionImage image = FirebaseVisionImage.fromMediaImage(pic, 180);
+        Log.i("testing", "yolo3 -------");*/
+
+        if(file.exists()){
+
+            Bitmap myBitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
+
+            FirebaseVisionImage image = FirebaseVisionImage.fromBitmap(myBitmap);
+            detectFaces(image);
+
+        }
+        //Bitmap bmp = BitmapFactory.decodeResource(getResources(), path.);
+
+/*
+        Log.i("testing", "yolo2 -------");
+        FirebaseVisionImage image = FirebaseVisionImage.fromBitmap(bmp);
+        //FirebaseVisionImage image = FirebaseVisionImage.fromMediaImage(pic, 180);
+        Log.i("testing", "yolo3 -------");*/
+
+
+
+        Log.i("testing", "updatedID: " + currentID);
+        Log.i("testing", "initID: " + initID);
+
+
+
+
+        if(currentID != initID && currentID != -1 && initID != -1) {
+            Log.i("testing", "INTRUDER ALERT --------");
+        } else {
+            Log.i("testing", "All Good --------");
+            initID = currentID;
+        }
+
+
+    }
+    public static Bitmap RotateBitmap(Bitmap source, float angle)
+    {
+        Matrix matrix = new Matrix();
+        matrix.postRotate(angle);
+        return Bitmap.createBitmap(source, 0, 0, source.getWidth(), source.getHeight(), matrix, true);
     }
 
     private void openCamera() {
@@ -175,6 +263,7 @@ public class FaceRecognition extends AppCompatActivity {
     private void takePicture()
     {
         if(cameraDevice == null)
+
             return;
         CameraManager manager = (CameraManager)getSystemService(Context.CAMERA_SERVICE);
         try
@@ -205,7 +294,9 @@ public class FaceRecognition extends AppCompatActivity {
             int rotation = getWindowManager().getDefaultDisplay().getRotation();
             captureBuilder.set(CaptureRequest.JPEG_ORIENTATION,ORIENTATIONS.get(rotation));
 
-            file = new File(Environment.getExternalStorageDirectory()+"/"+ UUID.randomUUID().toString() + ".jpg");
+            path = Environment.getExternalStorageDirectory().getPath()+"/temp.jpg";
+            file = new File(path);
+
             ImageReader.OnImageAvailableListener readerListener = new ImageReader.OnImageAvailableListener() {
                 @Override
                 public void onImageAvailable(ImageReader imageReader) {
@@ -213,6 +304,7 @@ public class FaceRecognition extends AppCompatActivity {
                     try
                     {
                         image = reader.acquireLatestImage();
+                        pic = image;
                         ByteBuffer buffer = image.getPlanes()[0].getBuffer();
                         byte[] bytes = new byte[buffer.capacity()];
                         buffer.get(bytes);
@@ -434,6 +526,7 @@ public class FaceRecognition extends AppCompatActivity {
 
     //---------
     private void detectFaces(FirebaseVisionImage image) {
+
         // [START set_detector_options]
         FirebaseVisionFaceDetectorOptions options =
                 new FirebaseVisionFaceDetectorOptions.Builder()
@@ -483,10 +576,14 @@ public class FaceRecognition extends AppCompatActivity {
 
                                             // If face tracking was enabled:
                                             if (face.getTrackingId() != FirebaseVisionFace.INVALID_ID) {
-                                                int id = face.getTrackingId();
+                                                currentID = face.getTrackingId();
 
-                                                Log.i("testing","faceID: " + id);
+                                                Log.i("testing","faceID: " + currentID);
 
+                                            }
+                                            else{
+                                                //sending alert
+                                                getCurrentLocation();
                                             }
                                         }
                                         // [END get_face_info]
@@ -501,6 +598,7 @@ public class FaceRecognition extends AppCompatActivity {
                                         // ...
                                     }
                                 });
+
         // [END run_detector]
     }
 
@@ -560,5 +658,43 @@ public class FaceRecognition extends AppCompatActivity {
             is.close();
         } catch (Exception e) {}
         return bm;
+    }
+
+    /////////////////////
+    //LOCATION STUFF
+    public void sendSMS() {
+        SmsManager smsManager = SmsManager.getDefault();
+        Log.i("log", "SMS is called");
+        smsManager.sendTextMessage(new String("6475348632"), null, message, null, null);
+        Toast.makeText(getApplicationContext(), "SMS sent.",
+                Toast.LENGTH_LONG).show();
+    }
+
+    private void getCurrentLocation() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        mFusedLocationClient.getLastLocation()
+                .addOnSuccessListener(this, new OnSuccessListener<Location>() {
+                    @Override
+                    public void onSuccess(Location location) {
+                        // Got last known location. In some rare situations this can be null.
+                        if (location != null) {
+                            // Logic to handle location object
+                            double longitude = location.getLongitude();
+                            double latitude = location.getLatitude();
+                            message= String.format("ALERT! Your Truck has been hijacked!\nDriver:Steven\nVIN:4V4MC9EH7CN559763\nLocation:https://www.google.com/maps/place/%s,%s", latitude, longitude);
+
+                            Log.i("log", message);
+                            if(message != null){
+                                sendSMS();
+                            }
+
+                        }
+                        else{
+                            Log.i("log", "Location is null");
+                        }
+                    }
+                });
     }
 }

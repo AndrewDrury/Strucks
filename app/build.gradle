@@ -1,5 +1,10 @@
 apply plugin: 'com.android.application'
 
+repositories {
+    google()
+    maven { url "https://maven.google.com" }
+}
+
 android {
     compileSdkVersion 28
     defaultConfig {
@@ -28,6 +33,9 @@ dependencies {
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
     implementation 'com.google.firebase:firebase-ml-vision:18.0.2'
     implementation 'com.google.firebase:firebase-ml-vision-face-model:17.0.2'
+
+    implementation 'com.google.android.gms:play-services-location:16.0.0'
 }
 
 apply plugin: 'com.google.gms.google-services'
+
