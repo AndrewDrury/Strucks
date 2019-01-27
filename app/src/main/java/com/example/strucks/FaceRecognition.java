@@ -5,8 +5,8 @@ import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.location.Location;
+import android.media.MediaPlayer;
 import android.support.annotation.NonNull;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.telephony.SmsManager;
@@ -70,7 +70,6 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -85,6 +84,10 @@ public class FaceRecognition extends AppCompatActivity {
         ORIENTATIONS.append(Surface.ROTATION_180,270);
         ORIENTATIONS.append(Surface.ROTATION_270,180);
     }
+
+    Context context = this;
+    MediaPlayer mp;
+
 
     private FusedLocationProviderClient mFusedLocationClient;
     private String message;
@@ -107,6 +110,9 @@ public class FaceRecognition extends AppCompatActivity {
 
     private int initID = -1;
     private int currentID;
+    private int period = 5;
+    private float rightEyeOpenProb = 1;
+    private float leftEyeOpenProb = 1;
 
     CameraDevice.StateCallback stateCallBack = new CameraDevice.StateCallback() {
         @Override
@@ -155,6 +161,7 @@ public class FaceRecognition extends AppCompatActivity {
             initID = currentID;
 
             Log.i("testing", "initID: " + initID);
+
         }*/
 
         //logic();
@@ -177,14 +184,26 @@ public class FaceRecognition extends AppCompatActivity {
             public void run() {
                 checkID();
             }
-        }, 5, 5, TimeUnit.SECONDS);
+        }, 5, period, TimeUnit.SECONDS);
 
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+
+        final ScheduledExecutorService newService = Executors.newSingleThreadScheduledExecutor();
+        executorService.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                alertTest();
+            }
+        }, 16, 30, TimeUnit.SECONDS);
+    }
+
+    private void alertTest() {
+        getCurrentLocation();
     }
 
     private void checkID() {
 
-        Log.i("testing", "YOLO1 --------");
+        Log.i("testing", "Taking Pic --------");
         takePicture();
         Log.i("testing", "path: " + path);
 
@@ -194,15 +213,16 @@ public class FaceRecognition extends AppCompatActivity {
         //bmp = RotateBitmap(bmp, 180);
         //Bitmap bmp = BitmapFactory.decodeResource(getResources(), path.);
 
-/*
-        Log.i("testing", "yolo2 -------");
-        FirebaseVisionImage image = FirebaseVisionImage.fromBitmap(bmp);
+
+        //FirebaseVisionImage image = FirebaseVisionImage.fromBitmap(bmp);
         //FirebaseVisionImage image = FirebaseVisionImage.fromMediaImage(pic, 180);
-        Log.i("testing", "yolo3 -------");*/
 
         if(file.exists()){
 
             Bitmap myBitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
+            file.delete();
+
+            myBitmap = RotateBitmap(myBitmap, 270);
 
             FirebaseVisionImage image = FirebaseVisionImage.fromBitmap(myBitmap);
             detectFaces(image);
@@ -232,10 +252,51 @@ public class FaceRecognition extends AppCompatActivity {
             if(currentID != -1) {
                 initID = currentID;
             }
+
+            if(rightEyeOpenProb < 0.5 && leftEyeOpenProb < 0.5) {
+                Handler h = new Handler();
+                h.postDelayed(r, 10);
+
+            }
         }
 
 
     }
+    Runnable r = new Runnable() {
+        @Override
+        public void run(){
+            int loops = 0;
+            while(rightEyeOpenProb < 0.5 && leftEyeOpenProb < 0.5) {
+                loops++;
+
+                takePicture();
+                if(file.exists()) {
+
+                    Bitmap myBitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
+                    FirebaseVisionImage image = FirebaseVisionImage.fromBitmap(myBitmap);
+                    detectFaces(image);
+
+                }
+                Handler h = new Handler();
+                h.postDelayed(r, 25);
+
+                //User is tired, play loud sound
+                if(loops == 5) {
+                    mp = MediaPlayer.create(context, R.raw.song);try {
+
+                        if (mp.isPlaying()) {
+                            mp.stop();
+                            mp.release();
+                            mp = MediaPlayer.create(context, R.raw.song);
+                        } mp.start();
+
+                        return;
+                    } catch(Exception e) { e.printStackTrace(); }
+                }
+            }
+        }
+    };
+
     public static Bitmap RotateBitmap(Bitmap source, float angle)
     {
         Matrix matrix = new Matrix();
@@ -531,7 +592,7 @@ public class FaceRecognition extends AppCompatActivity {
 
 
     //---------
-    private void detectFaces(FirebaseVisionImage image) {
+    private void detectFaces(FirebaseVisionImage fireImage) {
 
 
         currentID = -1;
@@ -554,7 +615,7 @@ public class FaceRecognition extends AppCompatActivity {
 
         // [START run_detector]
         Task<List<FirebaseVisionFace>> result =
-                detector.detectInImage(image)
+                detector.detectInImage(fireImage)
                         .addOnSuccessListener(
                                 new OnSuccessListener<List<FirebaseVisionFace>>() {
                                     @Override
@@ -573,12 +634,12 @@ public class FaceRecognition extends AppCompatActivity {
 
                                             // If classification was enabled:
                                             if (face.getRightEyeOpenProbability() != FirebaseVisionFace.UNCOMPUTED_PROBABILITY) {
-                                                float rightEyeOpenProb = face.getRightEyeOpenProbability();
+                                                rightEyeOpenProb = face.getRightEyeOpenProbability();
 
                                                 Log.i("testing","RightEyeOpenProb: " + rightEyeOpenProb);
                                             }
                                             if (face.getLeftEyeOpenProbability() != FirebaseVisionFace.UNCOMPUTED_PROBABILITY) {
-                                                float leftEyeOpenProb = face.getLeftEyeOpenProbability();
+                                                leftEyeOpenProb = face.getLeftEyeOpenProbability();
 
                                                 Log.i("testing","leftEyeOpenProb: " + leftEyeOpenProb);
                                             }
@@ -603,6 +664,13 @@ public class FaceRecognition extends AppCompatActivity {
                                         // ...
                                     }
                                 });
+        try {
+            detector.close();
+            Log.i("testing","released resources: " + currentID);
+
+        } catch (java.io.IOException e) {
+
+        }
 
         // [END run_detector]
     }
