@@ -85,18 +85,10 @@ public class FaceRecognition extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-//        setContentView(R.layout.activity_main);
-//        button = (Button)findViewById(R.id.button);
-//        button.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-//                flag = 1;
         setContentView(R.layout.activity_face_recognition);
         textureView = findViewById(R.id.textureView);
         assert textureView != null;
         textureView.setSurfaceTextureListener(texturelistener);
-//            }
-//        });
 
     }
 
@@ -350,6 +342,7 @@ public class FaceRecognition extends AppCompatActivity {
         mBackgroundThread = new HandlerThread("Camera Background");
         mBackgroundThread.start();
         mBackgrounderHandler = new Handler(mBackgroundThread.getLooper());
+
     }
 }
 
