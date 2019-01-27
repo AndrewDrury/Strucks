@@ -48,16 +48,12 @@ import android.media.ImageReader;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
-import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
-import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.content.pm.PackageManager;
 import android.util.Size;
 import android.util.SparseIntArray;
 import android.view.Surface;
 import android.view.TextureView;
-import android.widget.Button;
 import android.widget.Toast;
 
 import java.io.File;
@@ -68,7 +64,6 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -94,6 +89,7 @@ public class FaceRecognition extends AppCompatActivity {
 
     private File file;
     private String path;
+    private Image pic;
     private static final int REQUEST_CAMERA_PERMISSION = 200;
     private Handler mBackgrounderHandler;
     private HandlerThread mBackgroundThread;
@@ -181,10 +177,34 @@ public class FaceRecognition extends AppCompatActivity {
         takePicture();
         Log.i("testing", "path: " + path);
 
-        Bitmap bmp = BitmapFactory.decodeFile(path);
-        bmp = RotateBitmap(bmp, 180);
+        //Bitmap bmp = BitmapFactory.decodeResource(getResources(), Image);
+        //Bitmap bmp = BitmapFactory.decodeFile(path);
+        //Bitmap bmp = BitmapFactory.decodeStream((InputStream)new URL(path).getContent());
+        //bmp = RotateBitmap(bmp, 180);
+        //Bitmap bmp = BitmapFactory.decodeResource(getResources(), path.);
+
+/*
+        Log.i("testing", "yolo2 -------");
         FirebaseVisionImage image = FirebaseVisionImage.fromBitmap(bmp);
-        detectFaces(image);
+        //FirebaseVisionImage image = FirebaseVisionImage.fromMediaImage(pic, 180);
+        Log.i("testing", "yolo3 -------");*/
+
+        if(file.exists()){
+
+            Bitmap myBitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
+
+            FirebaseVisionImage image = FirebaseVisionImage.fromBitmap(myBitmap);
+            detectFaces(image);
+
+        }
+        //Bitmap bmp = BitmapFactory.decodeResource(getResources(), path.);
+
+/*
+        Log.i("testing", "yolo2 -------");
+        FirebaseVisionImage image = FirebaseVisionImage.fromBitmap(bmp);
+        //FirebaseVisionImage image = FirebaseVisionImage.fromMediaImage(pic, 180);
+        Log.i("testing", "yolo3 -------");*/
+
 
 
         Log.i("testing", "updatedID: " + currentID);
@@ -193,10 +213,11 @@ public class FaceRecognition extends AppCompatActivity {
 
 
 
-        if(currentID != initID && currentID != -1) {
+        if(currentID != initID && currentID != -1 && initID != -1) {
             Log.i("testing", "INTRUDER ALERT --------");
         } else {
             Log.i("testing", "All Good --------");
+            initID = currentID;
         }
 
 
@@ -267,8 +288,8 @@ public class FaceRecognition extends AppCompatActivity {
             int rotation = getWindowManager().getDefaultDisplay().getRotation();
             captureBuilder.set(CaptureRequest.JPEG_ORIENTATION,ORIENTATIONS.get(rotation));
 
-            path = Environment.getExternalStorageDirectory().getPath()+"/"+ UUID.randomUUID().toString() + ".jpg";
-            file = new File(Environment.getExternalStorageDirectory()+"/"+ UUID.randomUUID().toString() + ".jpg");
+            path = Environment.getExternalStorageDirectory().getPath()+"/temp.jpg";
+            file = new File(path);
 
             ImageReader.OnImageAvailableListener readerListener = new ImageReader.OnImageAvailableListener() {
                 @Override
@@ -277,6 +298,7 @@ public class FaceRecognition extends AppCompatActivity {
                     try
                     {
                         image = reader.acquireLatestImage();
+                        pic = image;
                         ByteBuffer buffer = image.getPlanes()[0].getBuffer();
                         byte[] bytes = new byte[buffer.capacity()];
                         buffer.get(bytes);
