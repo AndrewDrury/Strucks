@@ -223,7 +223,9 @@ public class FaceRecognition extends AppCompatActivity {
             Log.i("testing", "INTRUDER ALERT --------");
         } else {
             Log.i("testing", "All Good --------");
-            initID = currentID;
+            if(currentID != -1) {
+                initID = currentID;
+            }
         }
 
 
@@ -498,9 +500,7 @@ public class FaceRecognition extends AppCompatActivity {
         try {
             String address = "http://genfkd.wpengine.netdna-cdn.com/wp-content/uploads/2018/05/shutterstock_793117360-503x518.jpg";
             url = new URL(address);
-        } catch (MalformedURLException e) {
-            System.out.print("Exception 1 reached!!!!");
-        }
+        } catch (MalformedURLException e) {}
         /*
         Bitmap bmp = null;
         try {
@@ -527,13 +527,16 @@ public class FaceRecognition extends AppCompatActivity {
     //---------
     private void detectFaces(FirebaseVisionImage image) {
 
+
+        currentID = -1;
+
         // [START set_detector_options]
         FirebaseVisionFaceDetectorOptions options =
                 new FirebaseVisionFaceDetectorOptions.Builder()
                         .setClassificationMode(FirebaseVisionFaceDetectorOptions.ACCURATE)
                         //.setLandmarkMode(FirebaseVisionFaceDetectorOptions.ALL_LANDMARKS)
                         .setClassificationMode(FirebaseVisionFaceDetectorOptions.ALL_CLASSIFICATIONS)
-                        .setMinFaceSize(0.15f)
+                        .setMinFaceSize(0.05f)
                         .enableTracking()
                         .build();
         // [END set_detector_options]
