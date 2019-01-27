@@ -2,6 +2,7 @@ package com.example.strucks;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
@@ -69,8 +70,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-
-
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 
 public class FaceRecognition extends AppCompatActivity {
@@ -91,11 +93,15 @@ public class FaceRecognition extends AppCompatActivity {
     private ImageReader imageReader;
 
     private File file;
+    private String path;
     private static final int REQUEST_CAMERA_PERMISSION = 200;
     private Handler mBackgrounderHandler;
     private HandlerThread mBackgroundThread;
 
     private FirebaseAnalytics mFirebaseAnalytics;
+
+    private int initID = -1;
+    private int currentID;
 
     CameraDevice.StateCallback stateCallBack = new CameraDevice.StateCallback() {
         @Override
@@ -132,10 +138,22 @@ public class FaceRecognition extends AppCompatActivity {
         // Obtain the FirebaseAnalytics instance.
         mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
 
-        Log.i("testing", "hey --------");
-        logic();
+        Log.i("testing", "Getting inital face id --------");
 
-        Log.i("testing", "log --------");
+        /*while(initID == -1) {
+            takePicture();
+
+
+            Bitmap bmp = BitmapFactory.decodeFile(file.getPath());
+            FirebaseVisionImage image = FirebaseVisionImage.fromBitmap(bmp);
+            detectFaces(image);
+            initID = currentID;
+
+            Log.i("testing", "initID: " + initID);
+        }*/
+
+        //logic();
+        //Log.i("testing", "log --------");
         Bundle bundle = new Bundle();
 
         bundle.putString(FirebaseAnalytics.Param.ITEM_ID, "Strucks");
@@ -143,8 +161,51 @@ public class FaceRecognition extends AppCompatActivity {
         bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "image");
         mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.SELECT_CONTENT, bundle);
 
-        Log.i("testing", "done --------");
+       //Log.i("testing", "done --------");
 
+
+        Log.i("testing", "currentID: " + currentID);
+
+        final ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+        executorService.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                checkID();
+            }
+        }, 5, 5, TimeUnit.SECONDS);
+    }
+
+    private void checkID() {
+
+        Log.i("testing", "YOLO1 --------");
+        takePicture();
+        Log.i("testing", "path: " + path);
+
+        Bitmap bmp = BitmapFactory.decodeFile(path);
+        bmp = RotateBitmap(bmp, 180);
+        FirebaseVisionImage image = FirebaseVisionImage.fromBitmap(bmp);
+        detectFaces(image);
+
+
+        Log.i("testing", "updatedID: " + currentID);
+        Log.i("testing", "initID: " + initID);
+
+
+
+
+        if(currentID != initID && currentID != -1) {
+            Log.i("testing", "INTRUDER ALERT --------");
+        } else {
+            Log.i("testing", "All Good --------");
+        }
+
+
+    }
+    public static Bitmap RotateBitmap(Bitmap source, float angle)
+    {
+        Matrix matrix = new Matrix();
+        matrix.postRotate(angle);
+        return Bitmap.createBitmap(source, 0, 0, source.getWidth(), source.getHeight(), matrix, true);
     }
 
     private void openCamera() {
@@ -175,6 +236,7 @@ public class FaceRecognition extends AppCompatActivity {
     private void takePicture()
     {
         if(cameraDevice == null)
+
             return;
         CameraManager manager = (CameraManager)getSystemService(Context.CAMERA_SERVICE);
         try
@@ -205,7 +267,9 @@ public class FaceRecognition extends AppCompatActivity {
             int rotation = getWindowManager().getDefaultDisplay().getRotation();
             captureBuilder.set(CaptureRequest.JPEG_ORIENTATION,ORIENTATIONS.get(rotation));
 
+            path = Environment.getExternalStorageDirectory().getPath()+"/"+ UUID.randomUUID().toString() + ".jpg";
             file = new File(Environment.getExternalStorageDirectory()+"/"+ UUID.randomUUID().toString() + ".jpg");
+
             ImageReader.OnImageAvailableListener readerListener = new ImageReader.OnImageAvailableListener() {
                 @Override
                 public void onImageAvailable(ImageReader imageReader) {
@@ -434,6 +498,7 @@ public class FaceRecognition extends AppCompatActivity {
 
     //---------
     private void detectFaces(FirebaseVisionImage image) {
+
         // [START set_detector_options]
         FirebaseVisionFaceDetectorOptions options =
                 new FirebaseVisionFaceDetectorOptions.Builder()
@@ -483,9 +548,9 @@ public class FaceRecognition extends AppCompatActivity {
 
                                             // If face tracking was enabled:
                                             if (face.getTrackingId() != FirebaseVisionFace.INVALID_ID) {
-                                                int id = face.getTrackingId();
+                                                currentID = face.getTrackingId();
 
-                                                Log.i("testing","faceID: " + id);
+                                                Log.i("testing","faceID: " + currentID);
 
                                             }
                                         }
@@ -501,6 +566,7 @@ public class FaceRecognition extends AppCompatActivity {
                                         // ...
                                     }
                                 });
+
         // [END run_detector]
     }
 
