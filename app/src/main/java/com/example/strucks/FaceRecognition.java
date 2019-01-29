@@ -76,7 +76,6 @@ import java.util.concurrent.TimeUnit;
 
 
 public class FaceRecognition extends AppCompatActivity {
-    private TextureView textureView;
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
     static{
         ORIENTATIONS.append(Surface.ROTATION_0,90);
@@ -88,6 +87,8 @@ public class FaceRecognition extends AppCompatActivity {
     Context context = this;
     MediaPlayer mp;
 
+    public static final boolean DEV_MODE = true;
+    private TextureView textureView;
 
     private FusedLocationProviderClient mFusedLocationClient;
     private String message;
@@ -188,13 +189,15 @@ public class FaceRecognition extends AppCompatActivity {
 
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
-        final ScheduledExecutorService newService = Executors.newSingleThreadScheduledExecutor();
-        executorService.scheduleAtFixedRate(new Runnable() {
+        if(DEV_MODE){
+            final ScheduledExecutorService newService = Executors.newSingleThreadScheduledExecutor();
+            executorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
                 alertTest();
             }
         }, 16, 30, TimeUnit.SECONDS);
+        }
     }
 
     private void alertTest() {
@@ -738,7 +741,8 @@ public class FaceRecognition extends AppCompatActivity {
     public void sendSMS() {
         SmsManager smsManager = SmsManager.getDefault();
         Log.i("log", "SMS is called");
-        smsManager.sendTextMessage(new String("2263486765"), null, message, null, null);
+        //Insert phone number in XXXXXXXXXX
+        smsManager.sendTextMessage(new String("XXXXXXXXXX"), null, message, null, null);
         Toast.makeText(getApplicationContext(), "SMS sent.",
                 Toast.LENGTH_LONG).show();
     }
