@@ -1,4 +1,4 @@
-# Strucks
+# Strucks - Safe Trucks
 
 ### Created during DeltaHacks V - Checkout the project submission [here](https://devpost.com/software/strucks)!
 
